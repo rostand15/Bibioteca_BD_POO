@@ -12,7 +12,7 @@ public class ListarLivros {
             Connection conexao = DriverManager.getConnection(url, usuario, senha);
             Statement comando = conexao.createStatement();
             
-            // O '*' significa: traga todas as colunas da tabela Livros
+
             ResultSet resultado = comando.executeQuery("SELECT * FROM Livros");
 
             System.out.println("--- ACERVO DA BIBLIOTECA ---");

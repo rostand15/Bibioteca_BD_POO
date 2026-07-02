@@ -25,7 +25,7 @@ public class InserirLivro {
             String sql = "INSERT INTO Livros (titulo, autor, isbn, preco_custo, quantidade_estoque, status) VALUES (?, ?, ?, ?, ?, ?)";
             PreparedStatement comando = conexao.prepareStatement(sql);
             
-            // Preenchendo as colunas na ordem correta
+
             comando.setString(1, titulo);
             comando.setString(2, autor);
             comando.setString(3, isbn);

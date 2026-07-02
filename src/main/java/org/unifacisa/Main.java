@@ -15,28 +15,29 @@ public class Main {
             String menu = "=== Sistema LibriTech (" + perfilAtual + ") ===\n";
 
             if (perfilAtual.equals("GERENTE")) {
-                menu += "1- Listar Acervo\n2- Novo Livro\n3- Registrar Empréstimo\n4- Excluir Livro\n5- Cadastrar Usuário\n6- Processar Multas\n7- Sair";
+                // CORREÇÃO: "Cadastrar Usuário" removido e numeração ajustada
+                menu += "1- Listar Acervo\n2- Novo Livro\n3- Registrar Empréstimo\n4- Excluir Livro\n5- Processar Multas\n6- Sair";
             } else if (perfilAtual.equals("BIBLIOTECARIO")) {
-                menu += "1- Listar Acervo\n3- Registrar Empréstimo\n6- Processar Multas\n7- Sair";
+                menu += "1- Listar Acervo\n3- Registrar Empréstimo\n5- Processar Multas\n6- Sair"; // Ajustado para 6 o Sair
             } else {
-                menu += "1- Listar Acervo\n7- Sair";
+                menu += "1- Listar Acervo\n6- Sair"; // Ajustado para 6 o Sair
             }
 
             String opcao = JOptionPane.showInputDialog(menu);
-            if (opcao == null || opcao.equals("7")) break;
+            if (opcao == null || opcao.equals("6")) break; // Sair agora é 6 para unificar
 
             if ((perfilAtual.equals("ALUNO") || perfilAtual.equals("ESTAGIARIO")) && !opcao.equals("1")) {
                 JOptionPane.showMessageDialog(null, "Acesso negado para esta função!");
                 continue;
             }
 
+            // CORREÇÃO: Switch reorganizado para refletir a remoção da opção antiga
             switch (opcao) {
                 case "1": listarLivros(); break;
                 case "2": inserirLivro(); break;
                 case "3": registrarEmprestimo(); break;
                 case "4": deletarLivro(); break;
-                case "5": testarTransacaoAtomica(); break;
-                case "6": testarCalculoMulta(); break;
+                case "5": testarCalculoMulta(); break; // Antiga opção 6 virou 5
                 default: JOptionPane.showMessageDialog(null, "Opção inválida!");
             }
         }
@@ -54,7 +55,6 @@ public class Main {
         if (result != JOptionPane.OK_OPTION) System.exit(0);
 
         try {
-            // CORREÇÃO: Ajustado para bater com o padrão 'usr_nome' do seu script SQL
             String usuarioBanco = "usr_" + selecao.toLowerCase();
             String senhaBanco = new String(jpf.getPassword());
 
@@ -71,7 +71,6 @@ public class Main {
             Statement stmt = conexaoAtual.createStatement();
             ResultSet rs;
 
-            // CORREÇÃO: Aluno consome a VIEW pública (sem preço de custo). Outros perfis consomem a tabela direta.
             if (perfilAtual.equals("ALUNO")) {
                 rs = stmt.executeQuery("SELECT id_livro, titulo, autor, isbn, quantidade_estoque FROM vw_acervo_publico");
             } else {
@@ -87,7 +86,6 @@ public class Main {
                         .append(rs.getString("autor")).append(" | ISBN: ")
                         .append(rs.getString("isbn"));
 
-                // Exibe o preço de custo apenas para quem tem acesso à tabela base
                 if (!perfilAtual.equals("ALUNO")) {
                     sb.append(" | R$ ").append(rs.getDouble("preco_custo"));
                 }
@@ -146,36 +144,23 @@ public class Main {
 
     private static void registrarEmprestimo() {
         try {
-            // Antes de registrar, precisamos garantir que o usuário simulado exista no banco por causa da FK.
-            // Para testes rápidos, certifique-se de que a tabela 'Usuarios' possua um registro com ID = 2.
-            String id = JOptionPane.showInputDialog("ID Livro:");
+            String idUsuario = JOptionPane.showInputDialog("ID do Usuário (Quem está pegando emprestado):");
+            if (idUsuario == null || idUsuario.isEmpty()) return;
+
+            String idLivro = JOptionPane.showInputDialog("ID do Livro:");
+            if (idLivro == null || idLivro.isEmpty()) return;
+
             CallableStatement cstmt = conexaoAtual.prepareCall("{CALL sp_RegistrarEmprestimo(?, ?, 7)}");
-            cstmt.setInt(1, idUsuarioLogadoSimulado);
-            cstmt.setInt(2, Integer.parseInt(id));
+
+            cstmt.setInt(1, Integer.parseInt(idUsuario));
+            cstmt.setInt(2, Integer.parseInt(idLivro));
+
             cstmt.execute();
             JOptionPane.showMessageDialog(null, "Empréstimo realizado com sucesso!");
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Erro: Os IDs devem ser números válidos.");
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "ALERTA DO BANCO (Trigger/Procedure):\n" + e.getMessage());
-        }
-    }
-
-    private static void testarTransacaoAtomica() {
-        try {
-            // Passando 'SP' como UF para passar na validação da Procedure
-            CallableStatement cstmt = conexaoAtual.prepareCall("{CALL sp_transacao_cadastro_completo(?, ?, ?, ?, ?, ?, ?, ?, ?)}");
-            cstmt.setString(1, "Novo Usuario");
-            cstmt.setString(2, "11122233344");
-            cstmt.setString(3, "teste@libritech.com");
-            cstmt.setString(4, "senha123");
-            cstmt.setString(5, "ALUNO");
-            cstmt.setString(6, "Rua das Flores, 123");
-            cstmt.setString(7, "Centro");
-            cstmt.setString(8, "São Paulo");
-            cstmt.setString(9, "SP");
-            cstmt.execute();
-            JOptionPane.showMessageDialog(null, "Usuário e Endereço cadastrados via Transação!");
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "INTEGRIDADE MANTIDA:\n" + e.getMessage());
         }
     }
 
